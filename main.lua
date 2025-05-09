@@ -4,8 +4,8 @@ require "PACS DBTest"
 -- The main function is the first function called from Iguana.
 -- The Data argument will contain the message to be processed.
 function main(Data)
-   iguana.log("test")
-   
+   iguana.log("starting")
+  
 
    -- mock sample
    --MSH|^~\&|PROSOLV|PROSOLV|HIS|HIS|202411281931||ORU^R01|2411281931388|P|2.3
