@@ -189,9 +189,10 @@ iguana.log("doing database update")
 
          --update procedure
 
-        -- local procsql = [[UPDATE synapse.study SET procedure_info_uid = (select ID from synapse.procedure_info where code = ']] .. msgin.OBR[4][2]:S() ..[[') where id = ]] ..msgin.OBR[3][1]:S()
+         -- local procsql = [[UPDATE synapse.study SET procedure_info_uid = (select ID from synapse.procedure_info where code = ']] .. msgin.OBR[4][2]:S() ..[[') where id = ]] ..msgin.OBR[3][1]:S()
         -- trace (procsql)
-       --  local procQuery = dbCon:execute{sql=procsql}
+       
+     --  local procQuery = dbCon:execute{sql=procsql}
      --    dbCon:commit()
 
          -- update site if containing midland
