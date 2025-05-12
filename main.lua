@@ -149,7 +149,7 @@ function main(Data)
       
       iguana.log("about to do database update")
       -- do database updates
-     -- UpdateDatabase(Data)
+     UpdateDatabase(Data)
       --upload PDF
       uploadPDF(Data)
       
@@ -185,7 +185,7 @@ iguana.log("doing database update")
       docid = 0
 
       if dbCon then
-
+iguana.log("got into dbcon")
 
          --update procedure
 
@@ -243,7 +243,7 @@ iguana.log("doing database update")
 
             else
 
-               iguana.logError("User not found: " .. attcode .. " for studyuid: " .. studyuid)
+               iguana.log("User not found: " .. attcode .. " for studyuid: " .. studyuid)
             end
 
 
@@ -319,9 +319,11 @@ iguana.log("doing database update")
 
 
 
+         iguana.log("about to go docfound: " .. docid)
 
          if docfound  then
 
+            iguana.log("inside docfound")
 
             --if prelim just update attending physician
             if msgin.OBR[25]:S() == 'F' then
