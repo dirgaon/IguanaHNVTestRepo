@@ -126,30 +126,32 @@ function main(Data)
 
       msgout.OBX = nil
 
-      msgout.OBX[1][1] = '1'
-      msgout.OBX[1][2] = 'TX'
-      msgout.OBX[1][3]:mapTree(msgin.OBR[4])
-      msgout.OBX[1][11] = msgin.OBR[25]
+     -- msgout.OBX[1][1] = '1'
+     -- msgout.OBX[1][2] = 'TX'
+     -- msgout.OBX[1][3]:mapTree(msgin.OBR[4])
+     -- msgout.OBX[1][11] = msgin.OBR[25]
 
       --load TEXT file
-      msgout.OBX[1][5][1][1][1] = msgin.OBX[2][5][1][1][1]:S()
+     -- msgout.OBX[1][5][1][1][1] = msgin.OBX[2][5][1][1][1]:S()
 
 
       --OBX 2
       --OBX|2|ED|PDF^Display Format in PDF^PLS|^TTX(Adult)^|^PDF^PDF^BASE64^JVBERi0...==||||||F|
       --OBX|1|ED|PDF^Display Formate in PDF^PLS|^WC DSE Report^|^PDF^PDF^BASE64^JVBERi0...==||||||P
 
-      msgout.OBX[2]:mapTree(msgin.OBX[1])
-      msgout.OBX[2][1] = '2'
-      msgout.OBX[2][3][2] = 'Display Format in PDF'
-      msgout.OBX[2][11] = msgin.OBR[25]
+      msgout.OBX[1]:mapTree(msgin.OBX[1])
+      msgout.OBX[1][1] = '1'
+      msgout.OBX[1][3][2] = 'Display Format in PDF'
+      msgout.OBX[1][11] = msgin.OBR[25]
 
-      queue.push{data=msgout:S()}
+      
 
       -- do database updates
       UpdateDatabase(Data)
       --upload PDF
       uploadPDF(Data)
+      
+      queue.push{data=msgout:S()}
 
    end
 
