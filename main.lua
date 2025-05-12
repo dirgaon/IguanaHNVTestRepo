@@ -146,6 +146,8 @@ function main(Data)
 
       
 
+      
+      iguana.log("about to do database update")
       -- do database updates
       UpdateDatabase(Data)
       --upload PDF
@@ -168,7 +170,7 @@ end
 -- The main function is the first function called from Iguana.
 -- The Data argument will contain the message to be processed.
 function UpdateDatabase(Data)
-
+iguana.log("doing database update")
 
    msgin = hl7.parse{vmd='Outbound CV Report.vmd',data=Data}
 
