@@ -94,6 +94,7 @@ function main(Data)
          trace(sql)
 
          local tQuery = dbCon:query{sql=sql}
+         
 
          trace(tQuery)
 
@@ -110,6 +111,8 @@ function main(Data)
             iguana.log(accsql)
 
             local accQuery = dbCon:execute{sql=accsql}
+            dbCon:commit()
+            
          else
             msgout.OBR[3][1] = tQuery[1].RIS_STUDY_EUID:S()
          end
@@ -185,6 +188,7 @@ function UpdateDatabase(Data)
          local procsql = [[UPDATE synapse.study SET procedure_info_uid = (select ID from synapse.procedure_info where code = ']] .. msgin.OBR[4][2]:S() ..[[') where id = ]] ..msgin.OBR[3][1]:S()
          trace (procsql)
          local procQuery = dbCon:execute{sql=procsql}
+         dbCon:commit()
 
          -- update site if containing midland
 
@@ -382,6 +386,7 @@ function UpdateDatabase(Data)
                   local sqlupdate = [[update synapse.study set visit_uid = ]] .. tonumber(tQueryvisitid[1].NEXTVAL:S()) .. [[  where id = ']] .. studyuid .. [[']]
                   trace (sqlupdate)
                   local tQueryupdate = dbCon:execute{sql=sqlupdate}
+                  dbCon:commit()
 
                   iguana.log("Synapse Visit created and updated: " .. tonumber(tQueryvisitid[1].NEXTVAL:S()) .. " studyuid: " .. studyuid .. " updated with attending physician: " .. docid  )
 
@@ -420,6 +425,9 @@ function UpdateDatabase(Data)
 
                   --local sqlupdate = [[update synapse.visit set attending_physician_uid = ]] .. tonumber(tQueryvisit[1].ID:S()) .. [[, primary_location_uid = ]] .. locationid.. [[ where id = ]] .. tQueryvisit[1].ID:S()
                   local sqlupdate = [[update synapse.visit set attending_physician_uid = ]] .. tonumber(tQueryvisit[1].ID:S()) .. [[ where id = ]] .. tQueryvisit[1].ID:S()
+                  local tQueryupdate = dbCon:execute{sql=sqlupdate}
+                  dbCon:commit()
+                  
                   iguana.log("Synapse Visit updated: " .. tQueryvisit[1].ID:S().. " studyuid: " .. studyuid  .. " updated with attending physician: " .. docid)
                end -- end visit query
 
@@ -436,6 +444,7 @@ function UpdateDatabase(Data)
                docid .. [[,sysdate,sysdate)]]
                trace(sqlinsert)
                local tQueryinsert = dbCon:execute{sql=sqlinsert}
+               dbCon:commit()
 
 
 
@@ -542,6 +551,7 @@ function uploadPDF(Data)
          [[(SELECT DOCUMENT_UID FROM SYNAPSE.STUDY_DOCUMENT stdoc WHERE study_uid = ]] .. studyuid .. [[)]]
 
          local result = dbCon:execute{sql=sql};
+         dbCon:commit()
 
          iguana.log(sql)
 
@@ -549,6 +559,7 @@ function uploadPDF(Data)
          sql = [[UPDATE SYNAPSE.STUDY SET DOCUMENT_COUNT = DOCUMENT_COUNT - 1, STATUS = 50 WHERE DOCUMENT_COUNT > 0 AND ID = ]] .. studyuid
 
          result = dbCon:execute{sql=sql}
+         dbCon:commit()
          iguana.log(sql)
 
 
@@ -591,6 +602,7 @@ function uploadPDF(Data)
       trace(sql)
 
       result = dbCon:execute{sql=sql}
+      dbCon:commit()
       iguana.log(sql)
 
       --link document
@@ -600,6 +612,7 @@ function uploadPDF(Data)
       [[ SELECT  SYNAPSE.STUDY_DOCUMENT_SEQ.nextval,]] .. studyuid .. [[,]] .. docid .. [[ FROM Dual]]
 
       result = dbCon:execute{sql=sql}
+      dbCon:commit()
       iguana.log(sql)
 
       --update count and status
@@ -618,6 +631,7 @@ function uploadPDF(Data)
       end
 
       result = dbCon:execute{sql=sql}
+      dbCon:commit()
       iguana.log(sql)
 
 
