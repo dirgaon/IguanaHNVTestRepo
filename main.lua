@@ -149,7 +149,7 @@ function main(Data)
       
       iguana.log("about to do database update")
       -- do database updates
-      UpdateDatabase(Data)
+     -- UpdateDatabase(Data)
       --upload PDF
       uploadPDF(Data)
       
