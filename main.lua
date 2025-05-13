@@ -4,7 +4,7 @@ require "PACS DBTest"
 -- The main function is the first function called from Iguana.
 -- The Data argument will contain the message to be processed.
 function main(Data)
-   iguana.log("starting")
+   --iguana.log("starting")
   
 
    -- mock sample
@@ -59,6 +59,9 @@ function main(Data)
       --OBR|1||235244|^TTX(Adult)^|||202411281509|||||||||||||||202411281931|||F||||||NULL^^I9M|^Gordon^Dr Stephen^^|||^Gordon^Dr Stephen^^
       --OBR|1||1000001|^WC DSE Report^|||20240905|||||||||||||||20250325094619|||P|||||||PVIAL^Peter Vial|||Peter Vial
 
+      
+      msgout.OBR[3][1] = msgin.OBR[3][1]:S()
+      
       msgout.OBR[22] = msgin.OBR[22]:S():sub(1,12)
       msgout.OBR[35]:mapTree(msgin.OBR[32][1])
 
@@ -80,11 +83,11 @@ function main(Data)
 
 
       local dbCon = PACSDB.PACSConnection()
-      iguana.log("got here")
+     -- iguana.log("got here")
 
 
       if dbCon then
-         iguana.log("got here too")
+         --iguana.log("got here too")
 
 
 
@@ -99,22 +102,26 @@ function main(Data)
          trace(tQuery)
 
          if tQuery[1].RIS_STUDY_EUID:S() == nil or tQuery[1].RIS_STUDY_EUID:S() == [[NULL]] then
-            --use STUDY ID FOR NOW
-            msgout.OBR[3][1] = 'SYN-' .. msgin.OBR[3][1]:S()
+      
+          --msgout.OBR[3][1] = 'SYN-' .. msgin.OBR[3][1]:S()
+         -- instructed to leave empty if no Accession number
+            msgout.OBR[2] = nil
 
 
             --update database
 
 
-            local accsql = [[update synapse.study set ris_study_euid = 'SYN-]] .. msgin.OBR[3][1]:S() .. [[' where id = ]] .. msgin.OBR[3][1]:S()
-            trace(accsql)
-            iguana.log(accsql)
+           -- local accsql = [[update synapse.study set ris_study_euid = 'SYN-]] .. msgin.OBR[3][1]:S() .. [[' where id = ]] .. msgin.OBR[3][1]:S()
+           -- trace(accsql)
+           -- iguana.log(accsql)
 
-            local accQuery = dbCon:execute{sql=accsql}
-            dbCon:commit()
+           --local accQuery = dbCon:execute{sql=accsql}
+           -- dbCon:commit()
             
          else
-            msgout.OBR[3][1] = tQuery[1].RIS_STUDY_EUID:S()
+            --accession number in OBR[2]
+           msgout.OBR[2][1] = tQuery[1].RIS_STUDY_EUID:S()
+           msgout.OBR[2][2] = 'HTBOOKINGID'
          end
 
       end
@@ -147,7 +154,7 @@ function main(Data)
       
 
       
-      iguana.log("about to do database update")
+      --iguana.log("about to do database update")
       -- do database updates
      UpdateDatabase(Data)
       --upload PDF
