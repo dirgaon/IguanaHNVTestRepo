@@ -438,6 +438,8 @@ iguana.log("doing database update")
                   --     end
 
 
+                  
+                  iguana.log("about to update attending phy: " .. tonumber(tQueryvisit[1].ID:S()) .. " doc id:" .. tQueryvisit[1].ID:S())
 
                   --local sqlupdate = [[update synapse.visit set attending_physician_uid = ]] .. tonumber(tQueryvisit[1].ID:S()) .. [[, primary_location_uid = ]] .. locationid.. [[ where id = ]] .. tQueryvisit[1].ID:S()
                   local sqlupdate = [[update synapse.visit set attending_physician_uid = ]] .. tonumber(tQueryvisit[1].ID:S()) .. [[ where id = ]] .. tQueryvisit[1].ID:S()
