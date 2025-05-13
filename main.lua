@@ -342,6 +342,8 @@ iguana.log("doing database update")
                local tQueryvisit = dbCon:query{sql=sqlvisit}
 
                trace(tQueryvisit)
+               iguana.log('visit found: ' .. tQueryvisit[1].ID:S())
+               
 
                if #tQueryvisit == 0 then
                   --create visit and insert attphy
