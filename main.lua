@@ -402,7 +402,12 @@ iguana.log("doing database update")
 
                   trace(sqlinsert)
                   iguana.log(sqlinsert)
-                  dbCon:execute{sql=sqlinsert}
+                  local Success, Result = pcall(executeAndCommit, dbCon,sqlinsert)   
+                  if not Success then   
+                     iguana.log("Skipping error: "..Result)   
+                     error("Fatal error occurred: ".. Result)   
+                  end   
+                 
                   dbCon:commit()
                   
                   iguana.log('linking visit')
@@ -665,3 +670,8 @@ function uploadPDF(Data)
    end -- end if accexists
 
 end -- end main
+
+function executeAndCommit(dbcon,query)
+   dbcon:execute{sql=query}
+   dbcon:commit()
+end
