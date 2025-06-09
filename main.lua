@@ -83,7 +83,7 @@ function main(Data)
   -- conn:query{sql='SELECT * FROM synapse.study'}
 
 
-      local dbCon = PACSDB.PACSConnection()
+      local dbCon = PACSDBPROD.PACSConnection()
      -- iguana.log("got here")
 
 
@@ -189,7 +189,7 @@ iguana.log("doing database update")
    if studyuid ~= '' then
       trace( msgin.OBR[20]:S())
 
-      local dbCon = PACSDB.PACSConnection()
+      local dbCon = PACSDBPROD.PACSConnection()
       docid = 0
 
       if dbCon then
@@ -390,24 +390,35 @@ iguana.log("doing database update")
 
 
                   iguana.log('inserting visit')
+                  
+                  
+                  --find patient
+              --   sqlpatientquery = [[Select patient_uid from synapse.study where id = ']] .. studyuid .. [[']]
+             ----     tpatientquery = dbCon:query(sqlpatientquery)
+              --    trace(#tpatientquery)
+                  
+                  
 
 
                   local sqlinsert = [[insert into synapse.visit (id,patient_uid, site_uid, visit_number, attending_physician_uid, primary_location_uid, current_location_uid,class,referring_physician_uid) values ]] ..
                   [[( ]] .. tonumber(tQueryvisitid[1].NEXTVAL:S()) .. [[, ]] ..
                   [[(Select patient_uid from synapse.study where id = ']] .. studyuid .. [['), ]] ..
-                  [[(Select site_uid from synapse.study where id = ']] .. studyuid .. [['), ]] ..
+                  [[(Select site_uid from synapse.study where id = ']] .. studyuid .. [['), ]] ..             
                   [[']] .. studyuid .. [[', ]] ..
                   docid .. 
                   [[,-1,-1,'<unknown>',-1)]]
 
                   trace(sqlinsert)
                   iguana.log(sqlinsert)
-                  local Success, Result = pcall(executeAndCommit, dbCon,sqlinsert)   
+                  dbCon:execute{sql=sqlinsert}
+                  dbCon:commit()
                   
-                  if not Success then   
-                     iguana.log("Skipping error: " .. Result[1]:S())   
-                     error("Fatal error occurred: ".. Result[1]:S())   
-                  end   
+                  --local Success, Result = pcall(executeAndCommit, dbCon,sqlinsert)   
+                  
+                 -- if not Success then   
+                 --    iguana.log("Skipping error: " .. Result.message)   
+                 --    error("Fatal error occurred: ".. Result.message)   
+                 -- end   
                  
                   dbCon:commit()
                   
@@ -527,7 +538,7 @@ function uploadPDF(Data)
 
    local ReportStatus =  msgin.OBR[25]:S()
 
-   local dbCon = PACSDB.PACSConnection()
+   local dbCon = PACSDBPROD.PACSConnection()
 
    local doccount = 0
    local docid = 0

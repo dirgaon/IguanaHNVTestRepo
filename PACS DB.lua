@@ -1,11 +1,11 @@
 require('retry')
-PACSDB = {}
+PACSDBPROD = {}
 
-PACSDB.sSynapseServer = 'SYNAPSE-DB01'
-PACSDB.sDbUser = 'iguana'
-PACSDB.sDbPassword = 'IguanaUs3r'
+PACSDBPROD.sSynapseServer = 'SYNAPSE-DB01'
+PACSDBPROD.sDbUser = 'iguana'
+PACSDBPROD.sDbPassword = 'IguanaUs3r'
 
-function PACSDB.PACSConnection(bLive)
+function PACSDBPROD.PACSConnection(bLive)
    if not bLive then
       bLive = true
    end
@@ -13,9 +13,9 @@ function PACSDB.PACSConnection(bLive)
    
     local sConnection = db.connect{   
       api=db.ORACLE_ODBC, 
-      name=PACSDB.sSynapseServer,
-      user=PACSDB.sDbUser,
-      password=PACSDB.sDbPassword,
+      name=PACSDBPROD.sSynapseServer,
+      user=PACSDBPROD.sDbUser,
+      password=PACSDBPROD.sDbPassword,
       use_unicode = true     
    }
    
@@ -33,14 +33,14 @@ end
 --+++++++++++++++++++++++++++++++++++
 -- protected query
 -- Returns success (boolean) and result (table or error object)
-function PACSDB.pquery(dbConn, sSQL)      
+function PACSDBPROD.pquery(dbConn, sSQL)      
    return pcall(dbConn.query, dbConn, {sql = sSQL})
 end
 
 --+++++++++++++++++++++++++++++++++++
 -- protected execute
 -- Returns success (boolean) and result (table or error object)
-function PACSDB.pexecute(dbConn, sSQL, bLive)
+function PACSDBPROD.pexecute(dbConn, sSQL, bLive)
    if not bLive then
       bLive = false
    end
