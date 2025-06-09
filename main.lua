@@ -342,7 +342,7 @@ iguana.log("doing database update")
                local sqlvisit = [[select id from synapse.visit where id in (select visit_uid from synapse.study where not visit_uid = -1 and id = ']] .. studyuid .. [[')]]
                local tQueryvisit = dbCon:query{sql=sqlvisit}
 
-               trace(tQueryvisit)
+               trace(#tQueryvisit)
                iguana.log('visit found: ' .. tQueryvisit[1].ID:S())
                
 
@@ -350,6 +350,8 @@ iguana.log("doing database update")
                   --create visit and insert attphy
 
                   --get next val of synapse visit
+                  
+                  iguana.log('creating visit')
                   local sqlvisitid = [[select SYNAPSE.VISIT_SEQ.nextval from dual]]
                   local tQueryvisitid = dbCon:query{sql=sqlvisitid}
 
@@ -387,6 +389,7 @@ iguana.log("doing database update")
 
 
 
+                  iguana.log('inserting visit')
 
 
                   local sqlinsert = [[insert into synapse.visit (id,patient_uid, site_uid, visit_number, attending_physician_uid, primary_location_uid, current_location_uid,class,referring_physician_uid) values ]] ..
@@ -399,6 +402,8 @@ iguana.log("doing database update")
 
                   trace(sqlinsert)
                   local tQueryinsert = dbCon:execute{sql=sqlinsert}
+                  
+                  iguana.log('linking visit')
 
                   local sqlupdate = [[update synapse.study set visit_uid = ]] .. tonumber(tQueryvisitid[1].NEXTVAL:S()) .. [[  where id = ']] .. studyuid .. [[']]
                   trace (sqlupdate)
@@ -558,7 +563,7 @@ function uploadPDF(Data)
 
 
    if (accexists == 0) then
-      iguana.logError("Study not found, studyuid:" .. studyuid)
+      iguana.logError("Study not found, studyuid: " .. studyuid)
    else
 
 
