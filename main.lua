@@ -402,7 +402,8 @@ iguana.log("doing database update")
 
                   trace(sqlinsert)
                   iguana.log(sqlinsert)
-                  local tQueryinsert = dbCon:execute{sql=sqlinsert}
+                  dbCon:execute{sql=sqlinsert}
+                  dbCon:commit()
                   
                   iguana.log('linking visit')
 
