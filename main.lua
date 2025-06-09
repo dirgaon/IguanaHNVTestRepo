@@ -1,5 +1,6 @@
+require "PACS DB"
 require "retry"
-require "PACS DBTest"
+require "PACS DB"
 
 -- The main function is the first function called from Iguana.
 -- The Data argument will contain the message to be processed.
