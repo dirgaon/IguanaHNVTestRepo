@@ -403,9 +403,10 @@ iguana.log("doing database update")
                   trace(sqlinsert)
                   iguana.log(sqlinsert)
                   local Success, Result = pcall(executeAndCommit, dbCon,sqlinsert)   
+                  
                   if not Success then   
-                     iguana.log("Skipping error: "..Result)   
-                     error("Fatal error occurred: ".. Result)   
+                     iguana.log("Skipping error: " .. Result[1]:S())   
+                     error("Fatal error occurred: ".. Result[1]:S())   
                   end   
                  
                   dbCon:commit()
