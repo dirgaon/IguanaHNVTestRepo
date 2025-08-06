@@ -6,7 +6,10 @@ require "PACS DB"
 -- The Data argument will contain the message to be processed.
 function main(Data)
    --iguana.log("starting")
-  
+
+
+
+
 
    -- mock sample
    --MSH|^~\&|PROSOLV|PROSOLV|HIS|HIS|202411281931||ORU^R01|2411281931388|P|2.3
@@ -27,142 +30,173 @@ function main(Data)
    msgin, sname = hl7.parse{vmd='Outbound CV Report.vmd',data=Data}
    msgout = hl7.message{vmd='Outbound CV Report.vmd',name=sname}
    msgout:mapTree(msgin)
+
    if sname == 'CVReport' then
 
-      
+
+      --NEW UPDATE, don't process if prelim and study has been finalized
+      prelimonfinal = false
+      if msgin.OBR[25]:S() == 'P' then
+
+         --check if status is final
+
+         local dbCon = PACSDBPROD.PACSConnection()
+         if dbCon then
 
 
-      --MSH
-      --MSH|^~\&|PROSOLV|PROSOLV|HIS|HIS|202411281931||ORU^R01|2411281931388|P|2.3
-      --MSH|^~\&|ER|WC|HIS|WC|20250325094627||ORU^R01|123420250325094627|P|2.3.1
+            local sql = [[SELECT status from synapse.study where id = ]] .. msgin.OBR[3][1]:S()
+            trace(sql)
 
-      msgout.MSH[3][1] = 'PROSOLV'
-      msgout.MSH[4][1] = 'PROSOLV'
-      msgout.MSH[12] = '2.3'
+            local tQuery = dbCon:query{sql=sql}
+            if tQuery[1].STATUS:S() == '60' or tQuery[1].STATUS:S() == '65' then
 
-
-
-      --PID
-      --PID||12345|12345||LASTNAME^Firstname||19320203|F|||||||||||
-      --PID||103093|103093||Newton^James^|||M|||||||||||
-
-      --no changes so far
-
-
-      --PV1
-      --PV1|||||||^Gordon^Dr Stephen^^|Dr E Yamen|||||||||
-      --PV1|||||||Peter Vial|
-
-      msgout.PV1[7]:mapTree(msgin.OBR[32])
-
-
-      --OBR
-      --OBR|1||235244|^TTX(Adult)^|||202411281509|||||||||||||||202411281931|||F||||||NULL^^I9M|^Gordon^Dr Stephen^^|||^Gordon^Dr Stephen^^
-      --OBR|1||1000001|^WC DSE Report^|||20240905|||||||||||||||20250325094619|||P|||||||PVIAL^Peter Vial|||Peter Vial
-
-      
-      msgout.OBR[3][1] = msgin.OBR[3][1]:S()
-      
-      msgout.OBR[22] = msgin.OBR[22]:S():sub(1,12)
-      msgout.OBR[35]:mapTree(msgin.OBR[32][1])
-
-      --lookup accession number
-      
-      --test
-      
-
- --     local dbCon = db.connect{   
---      api=db.ORACLE_ODBC, 
- --     name=[[SYNAPSE-TEST01]],
---      user='iguana',
-  --    password='IguanaUs3r',
- --     use_unicode = true,
- --     live = true
- --  }
- 
-  -- conn:query{sql='SELECT * FROM synapse.study'}
-
-
-      local dbCon = PACSDBPROD.PACSConnection()
-     -- iguana.log("got here")
-
-
-      if dbCon then
-         --iguana.log("got here too")
+               prelimonfinal =true
+            end
 
 
 
-         attcode = msgin.OBR[32][1]:S()
-
-         local sql = [[SELECT ris_study_euid from synapse.study where id = ]] .. msgin.OBR[3][1]:S()
-         trace(sql)
-
-         local tQuery = dbCon:query{sql=sql}
-         
-
-         trace(tQuery)
-
-         if tQuery[1].RIS_STUDY_EUID:S() == nil or tQuery[1].RIS_STUDY_EUID:S() == [[NULL]] then
-      
-          --msgout.OBR[3][1] = 'SYN-' .. msgin.OBR[3][1]:S()
-         -- instructed to leave empty if no Accession number
-            msgout.OBR[2] = nil
-
-
-            --update database
-
-
-           -- local accsql = [[update synapse.study set ris_study_euid = 'SYN-]] .. msgin.OBR[3][1]:S() .. [[' where id = ]] .. msgin.OBR[3][1]:S()
-           -- trace(accsql)
-           -- iguana.log(accsql)
-
-           --local accQuery = dbCon:execute{sql=accsql}
-           -- dbCon:commit()
-            
-         else
-            --accession number in OBR[2]
-           msgout.OBR[2][1] = tQuery[1].RIS_STUDY_EUID:S()
-           msgout.OBR[2][2] = 'HTBOOKINGID'
          end
 
+
       end
-      dbCon:close()
-
-      --OBX 1
-      --OBX|1|TX|^TTX(Adult)^||~              Echocardiogram Report~~~ Name:    LASTNAME, Firstname ...~||||||F
-      -- na
-
-      msgout.OBX = nil
-
-     -- msgout.OBX[1][1] = '1'
-     -- msgout.OBX[1][2] = 'TX'
-     -- msgout.OBX[1][3]:mapTree(msgin.OBR[4])
-     -- msgout.OBX[1][11] = msgin.OBR[25]
-
-      --load TEXT file
-     -- msgout.OBX[1][5][1][1][1] = msgin.OBX[2][5][1][1][1]:S()
 
 
-      --OBX 2
-      --OBX|2|ED|PDF^Display Format in PDF^PLS|^TTX(Adult)^|^PDF^PDF^BASE64^JVBERi0...==||||||F|
-      --OBX|1|ED|PDF^Display Formate in PDF^PLS|^WC DSE Report^|^PDF^PDF^BASE64^JVBERi0...==||||||P
+      if prelimonfinal then
+         iguana.log("Not processing this prelim report because study status is final or amended")
+      else
 
-      msgout.OBX[1]:mapTree(msgin.OBX[1])
-      msgout.OBX[1][1] = '1'
-      msgout.OBX[1][3][2] = 'Display Format in PDF'
-      msgout.OBX[1][11] = msgin.OBR[25]
+         --MSH
+         --MSH|^~\&|PROSOLV|PROSOLV|HIS|HIS|202411281931||ORU^R01|2411281931388|P|2.3
+         --MSH|^~\&|ER|WC|HIS|WC|20250325094627||ORU^R01|123420250325094627|P|2.3.1
 
-      
+         msgout.MSH[3][1] = 'PROSOLV'
+         msgout.MSH[4][1] = 'PROSOLV'
+         msgout.MSH[12] = '2.3'
 
-      
-      --iguana.log("about to do database update")
-      -- do database updates
-     UpdateDatabase(Data)
-      --upload PDF
-      uploadPDF(Data)
-      
-      queue.push{data=msgout:S()}
 
+
+         --PID
+         --PID||12345|12345||LASTNAME^Firstname||19320203|F|||||||||||
+         --PID||103093|103093||Newton^James^|||M|||||||||||
+
+         --no changes so far
+
+
+         --PV1
+         --PV1|||||||^Gordon^Dr Stephen^^|Dr E Yamen|||||||||
+         --PV1|||||||Peter Vial|
+
+         msgout.PV1[7]:mapTree(msgin.OBR[32])
+
+
+         --OBR
+         --OBR|1||235244|^TTX(Adult)^|||202411281509|||||||||||||||202411281931|||F||||||NULL^^I9M|^Gordon^Dr Stephen^^|||^Gordon^Dr Stephen^^
+         --OBR|1||1000001|^WC DSE Report^|||20240905|||||||||||||||20250325094619|||P|||||||PVIAL^Peter Vial|||Peter Vial
+
+
+         msgout.OBR[3][1] = msgin.OBR[3][1]:S()
+
+         msgout.OBR[22] = msgin.OBR[22]:S():sub(1,12)
+         msgout.OBR[35]:mapTree(msgin.OBR[32][1])
+
+         --lookup accession number
+
+         --test
+
+
+         --     local dbCon = db.connect{   
+         --      api=db.ORACLE_ODBC, 
+         --     name=[[SYNAPSE-TEST01]],
+         --      user='iguana',
+         --    password='IguanaUs3r',
+         --     use_unicode = true,
+         --     live = true
+         --  }
+
+         -- conn:query{sql='SELECT * FROM synapse.study'}
+
+
+         local dbCon = PACSDBPROD.PACSConnection()
+         -- iguana.log("got here")
+
+
+         if dbCon then
+            --iguana.log("got here too")
+
+
+
+            attcode = msgin.OBR[32][1]:S()
+
+            local sql = [[SELECT ris_study_euid from synapse.study where id = ]] .. msgin.OBR[3][1]:S()
+            trace(sql)
+
+            local tQuery = dbCon:query{sql=sql}
+
+
+            trace(tQuery)
+
+            if tQuery[1].RIS_STUDY_EUID:S() == nil or tQuery[1].RIS_STUDY_EUID:S() == [[NULL]] then
+
+               --msgout.OBR[3][1] = 'SYN-' .. msgin.OBR[3][1]:S()
+               -- instructed to leave empty if no Accession number
+               msgout.OBR[2] = nil
+
+
+               --update database
+
+
+               -- local accsql = [[update synapse.study set ris_study_euid = 'SYN-]] .. msgin.OBR[3][1]:S() .. [[' where id = ]] .. msgin.OBR[3][1]:S()
+               -- trace(accsql)
+               -- iguana.log(accsql)
+
+               --local accQuery = dbCon:execute{sql=accsql}
+               -- dbCon:commit()
+
+            else
+               --accession number in OBR[2]
+               msgout.OBR[2][1] = tQuery[1].RIS_STUDY_EUID:S()
+               msgout.OBR[2][2] = 'HTBOOKINGID'
+            end
+
+         end
+         dbCon:close()
+
+         --OBX 1
+         --OBX|1|TX|^TTX(Adult)^||~              Echocardiogram Report~~~ Name:    LASTNAME, Firstname ...~||||||F
+         -- na
+
+         msgout.OBX = nil
+
+         -- msgout.OBX[1][1] = '1'
+         -- msgout.OBX[1][2] = 'TX'
+         -- msgout.OBX[1][3]:mapTree(msgin.OBR[4])
+         -- msgout.OBX[1][11] = msgin.OBR[25]
+
+         --load TEXT file
+         -- msgout.OBX[1][5][1][1][1] = msgin.OBX[2][5][1][1][1]:S()
+
+
+         --OBX 2
+         --OBX|2|ED|PDF^Display Format in PDF^PLS|^TTX(Adult)^|^PDF^PDF^BASE64^JVBERi0...==||||||F|
+         --OBX|1|ED|PDF^Display Formate in PDF^PLS|^WC DSE Report^|^PDF^PDF^BASE64^JVBERi0...==||||||P
+
+         msgout.OBX[1]:mapTree(msgin.OBX[1])
+         msgout.OBX[1][1] = '1'
+         msgout.OBX[1][3][2] = 'Display Format in PDF'
+         msgout.OBX[1][11] = msgin.OBR[25]
+
+
+
+
+         --iguana.log("about to do database update")
+         -- do database updates
+         UpdateDatabase(Data)
+         --upload PDF
+         uploadPDF(Data)
+
+         queue.push{data=msgout:S()}
+
+      end
    end
 
 
@@ -178,7 +212,7 @@ end
 -- The main function is the first function called from Iguana.
 -- The Data argument will contain the message to be processed.
 function UpdateDatabase(Data)
-iguana.log("doing database update")
+   iguana.log("doing database update")
 
    msgin = hl7.parse{vmd='Outbound CV Report.vmd',data=Data}
 
@@ -198,21 +232,21 @@ iguana.log("doing database update")
          --update procedure
 
          -- local procsql = [[UPDATE synapse.study SET procedure_info_uid = (select ID from synapse.procedure_info where code = ']] .. msgin.OBR[4][2]:S() ..[[') where id = ]] ..msgin.OBR[3][1]:S()
-        -- trace (procsql)
-       
-     --  local procQuery = dbCon:execute{sql=procsql}
-     --    dbCon:commit()
+         -- trace (procsql)
+
+         --  local procQuery = dbCon:execute{sql=procsql}
+         --    dbCon:commit()
 
          -- update site if containing midland
 
-      --   trace(msgin.PV1[3][1]:S() )
+         --   trace(msgin.PV1[3][1]:S() )
 
-      --   if msgin.PV1[3][1]:S() ~= '' and string.find(string.upper(msgin.PV1[3][1]:S()),[[MIDLAND]]) ~= nil then
-     --       local sitesql = [[UPDATE synapse.study SET site_uid = (select ID from synapse.site where EUID = 'MIDLAND') where id = ]] ..msgin.OBR[3][1]:S()
-     --       trace (sitesql)
-     --       local siteQuery = dbCon:execute{sql=sitesql}
+         --   if msgin.PV1[3][1]:S() ~= '' and string.find(string.upper(msgin.PV1[3][1]:S()),[[MIDLAND]]) ~= nil then
+         --       local sitesql = [[UPDATE synapse.study SET site_uid = (select ID from synapse.site where EUID = 'MIDLAND') where id = ]] ..msgin.OBR[3][1]:S()
+         --       trace (sitesql)
+         --       local siteQuery = dbCon:execute{sql=sitesql}
 
-     --    end
+         --    end
 
 
 
@@ -344,13 +378,13 @@ iguana.log("doing database update")
 
                trace(#tQueryvisit)
                iguana.log('visit found: ' .. tQueryvisit[1].ID:S())
-               
+
 
                if #tQueryvisit == 0 then
                   --create visit and insert attphy
 
                   --get next val of synapse visit
-                  
+
                   iguana.log('creating visit')
                   local sqlvisitid = [[select SYNAPSE.VISIT_SEQ.nextval from dual]]
                   local tQueryvisitid = dbCon:query{sql=sqlvisitid}
@@ -390,14 +424,14 @@ iguana.log("doing database update")
 
 
                   iguana.log('inserting visit')
-                  
-                  
+
+
                   --find patient
-              --   sqlpatientquery = [[Select patient_uid from synapse.study where id = ']] .. studyuid .. [[']]
-             ----     tpatientquery = dbCon:query(sqlpatientquery)
-              --    trace(#tpatientquery)
-                  
-                  
+                  --   sqlpatientquery = [[Select patient_uid from synapse.study where id = ']] .. studyuid .. [[']]
+                  ----     tpatientquery = dbCon:query(sqlpatientquery)
+                  --    trace(#tpatientquery)
+
+
 
 
                   local sqlinsert = [[insert into synapse.visit (id,patient_uid, site_uid, visit_number, attending_physician_uid, primary_location_uid, current_location_uid,class,referring_physician_uid) values ]] ..
@@ -412,16 +446,16 @@ iguana.log("doing database update")
                   iguana.log(sqlinsert)
                   dbCon:execute{sql=sqlinsert}
                   dbCon:commit()
-                  
+
                   --local Success, Result = pcall(executeAndCommit, dbCon,sqlinsert)   
-                  
-                 -- if not Success then   
-                 --    iguana.log("Skipping error: " .. Result.message)   
-                 --    error("Fatal error occurred: ".. Result.message)   
-                 -- end   
-                 
+
+                  -- if not Success then   
+                  --    iguana.log("Skipping error: " .. Result.message)   
+                  --    error("Fatal error occurred: ".. Result.message)   
+                  -- end   
+
                   dbCon:commit()
-                  
+
                   iguana.log('linking visit')
 
                   local sqlupdate = [[update synapse.study set visit_uid = ]] .. tonumber(tQueryvisitid[1].NEXTVAL:S()) .. [[  where id = ']] .. studyuid .. [[']]
@@ -463,14 +497,14 @@ iguana.log("doing database update")
                   --     end
 
 
-                  
+
                   iguana.log("about to update attending phy: " .. tonumber(tQueryvisit[1].ID:S()) .. " doc id:" .. docid)
 
                   --local sqlupdate = [[update synapse.visit set attending_physician_uid = ]] .. tonumber(tQueryvisit[1].ID:S()) .. [[, primary_location_uid = ]] .. locationid.. [[ where id = ]] .. tQueryvisit[1].ID:S()
                   local sqlupdate = [[update synapse.visit set attending_physician_uid = ]] .. docid .. [[ where id = ]] .. tQueryvisit[1].ID:S()
                   local tQueryupdate = dbCon:execute{sql=sqlupdate}
                   dbCon:commit()
-                  
+
                   iguana.log("Synapse Visit updated: " .. tQueryvisit[1].ID:S().. " studyuid: " .. studyuid  .. " updated with attending physician: " .. docid)
                end -- end visit query
 
@@ -521,7 +555,7 @@ end
 function uploadPDF(Data)
 
    iguana.log("doing PDF Upload")
-   
+
    --check current report
    local doccount = -1
    local docid = 0
