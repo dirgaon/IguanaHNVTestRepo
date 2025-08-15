@@ -191,7 +191,7 @@ function main(Data)
          --iguana.log("about to do database update")
          -- do database updates
          UpdateDatabase(Data)
-         updateSonographer(msgin.PV1[7][1]:S(), studyuid)
+         updateSonographer(msgin.PV1[9][1]:S(), studyuid)
          --upload PDF
          uploadPDF(Data)
 
