@@ -191,6 +191,7 @@ function main(Data)
          --iguana.log("about to do database update")
          -- do database updates
          UpdateDatabase(Data)
+         updateSonographer(msgin.PV1[7][1]:S(), studyuid)
          --upload PDF
          uploadPDF(Data)
 
@@ -228,6 +229,42 @@ function UpdateDatabase(Data)
 
       if dbCon then
          iguana.log("got into dbcon")
+
+
+         --update referrer
+         ref = msgin.PV1[8]:S()
+         refid = '-1'
+
+         if msgin.PV1[8]:S() ~= '' then
+            local reffindsql = [[select id from synapse.user_info where last_name = ']] .. ref .. [[']]
+            local reffindQuery = dbCon:query{sql=reffindsql}
+
+            --if found, just update visit with the reference
+            if #reffindQuery > 0 then
+               refid = reffindQuery[1].ID:S()
+
+            else
+               --if not found then need to create user first
+
+               --grab an id
+               local sqluserid = [[select SYNAPSE.USER_INFO_SEQ.nextval from dual]]
+               local tQueryuserid = dbCon:query{sql=sqluserid}
+
+               local createuserrefsql = [[INSERT INTO synapse.user_info (id, accessor_uid, site_uid, user_euid, last_name, first_name, is_active) VALUES ]] ..
+               [[( ]] .. tonumber(tQueryuserid[1].NEXTVAL:S()) .. [[, -1, -1, ']] .. string.gsub(ref,' ','') .. [[', ']] .. ref .. [[', ' ', 'Y')]]
+
+
+               iguana.log("Adding a user, ref: " .. ref .. " id: " .. tonumber(tQueryuserid[1].NEXTVAL:S()))
+               local tcreateuserrefsql = dbCon:execute{sql=createuserrefsql}
+               refid = tonumber(tQueryuserid[1].NEXTVAL:S())
+            end
+
+
+         end
+
+
+
+
 
          --update procedure
 
@@ -369,7 +406,7 @@ function UpdateDatabase(Data)
             iguana.log("inside docfound")
 
             --if prelim just update attending physician
-            if msgin.OBR[25]:S() == 'F' then
+            if msgin.OBR[25]:S() == 'F' or msgin.OBR[25]:S() == 'C'  then
 
                --see if study has visit, if not create one
 
@@ -440,7 +477,7 @@ function UpdateDatabase(Data)
                   [[(Select site_uid from synapse.study where id = ']] .. studyuid .. [['), ]] ..             
                   [[']] .. studyuid .. [[', ]] ..
                   docid .. 
-                  [[,-1,-1,'<unknown>',-1)]]
+                  [[,-1,-1,'<unknown>',]] .. refid .. [[)]]
 
                   trace(sqlinsert)
                   iguana.log(sqlinsert)
@@ -501,7 +538,7 @@ function UpdateDatabase(Data)
                   iguana.log("about to update attending phy: " .. tonumber(tQueryvisit[1].ID:S()) .. " doc id:" .. docid)
 
                   --local sqlupdate = [[update synapse.visit set attending_physician_uid = ]] .. tonumber(tQueryvisit[1].ID:S()) .. [[, primary_location_uid = ]] .. locationid.. [[ where id = ]] .. tQueryvisit[1].ID:S()
-                  local sqlupdate = [[update synapse.visit set attending_physician_uid = ]] .. docid .. [[ where id = ]] .. tQueryvisit[1].ID:S()
+                  local sqlupdate = [[update synapse.visit set attending_physician_uid = ]] .. docid .. [[, referring_physician_uid = ]] .. refid .. [[ where id = ]] .. tQueryvisit[1].ID:S()
                   local tQueryupdate = dbCon:execute{sql=sqlupdate}
                   dbCon:commit()
 
@@ -513,25 +550,142 @@ function UpdateDatabase(Data)
 
                -- if FINAL, also update dictated
 
+               if msgin.OBR[25]:S() == 'F' then
+
+                  local sqlinsert = [[insert into synapse.study_medical_event (id, study_uid,activity_uid,user_info_uid,event_timedate,create_timedate) VALUES ]] ..
+
+                  [[(SYNAPSE.study_med_event_SEQ.nextval, ]] .. studyuid ..[[, 7,]] ..
+                  docid .. [[,sysdate,sysdate)]]
+                  trace(sqlinsert)
+                  local tQueryinsert = dbCon:execute{sql=sqlinsert}
+                  dbCon:commit()
+
+               elseif msgin.OBR[25]:S() == 'C' then
+                  local sqlinsert = [[insert into synapse.study_medical_event (id, study_uid,activity_uid,user_info_uid,event_timedate,create_timedate) VALUES ]] ..
+
+                  [[(SYNAPSE.study_med_event_SEQ.nextval, ]] .. studyuid ..[[, 5,]] ..
+                  docid .. [[,sysdate,sysdate)]]
+                  trace(sqlinsert)
+                  local tQueryinsert = dbCon:execute{sql=sqlinsert}
+                  dbCon:commit()
+               end
 
 
-               local sqlinsert = [[insert into synapse.study_medical_event (id, study_uid,activity_uid,user_info_uid,event_timedate,create_timedate) VALUES ]] ..
 
-               [[(SYNAPSE.study_med_event_SEQ.nextval, ]] .. studyuid ..[[, 7,]] ..
-               docid .. [[,sysdate,sysdate)]]
-               trace(sqlinsert)
-               local tQueryinsert = dbCon:execute{sql=sqlinsert}
-               dbCon:commit()
+            end --if final or prelim
+
+         end -- end docfound
 
 
+         --do prelim separately to update referring
+
+         if msgin.OBR[25]:S() == 'P' then
+
+            --if prelim, only update referring
 
 
-            end -- end iffinal
+            if refid ~= '-1'  then
+
+
+
+               --see if study has visit, if not create one
+
+               local sqlvisit = [[select id from synapse.visit where id in (select visit_uid from synapse.study where not visit_uid = -1 and id = ']] .. studyuid .. [[')]]
+               local tQueryvisit = dbCon:query{sql=sqlvisit}
+
+               trace(#tQueryvisit)
+               iguana.log('visit found: ' .. tQueryvisit[1].ID:S())
+
+
+               if #tQueryvisit == 0 then
+                  --create visit and insert attphy
+
+                  --get next val of synapse visit
+
+                  iguana.log('creating visit')
+                  local sqlvisitid = [[select SYNAPSE.VISIT_SEQ.nextval from dual]]
+                  local tQueryvisitid = dbCon:query{sql=sqlvisitid}
+
+                  trace(tQueryvisitid)
 
 
 
 
-         end --end docfound 
+
+
+                  iguana.log('inserting visit')
+
+
+                  --find patient
+                  --   sqlpatientquery = [[Select patient_uid from synapse.study where id = ']] .. studyuid .. [[']]
+                  ----     tpatientquery = dbCon:query(sqlpatientquery)
+                  --    trace(#tpatientquery)
+
+
+
+
+                  local sqlinsert = [[insert into synapse.visit (id,patient_uid, site_uid, visit_number, attending_physician_uid, primary_location_uid, current_location_uid,class,referring_physician_uid) values ]] ..
+                  [[( ]] .. tonumber(tQueryvisitid[1].NEXTVAL:S()) .. [[, ]] ..
+                  [[(Select patient_uid from synapse.study where id = ']] .. studyuid .. [['), ]] ..
+                  [[(Select site_uid from synapse.study where id = ']] .. studyuid .. [['), ]] ..             
+                  [[']] .. studyuid .. [[', ]] ..
+                  [[-1]] .. 
+                  [[,-1,-1,'<unknown>',]] .. refid .. [[)]]
+
+                  trace(sqlinsert)
+                  iguana.log(sqlinsert)
+                  dbCon:execute{sql=sqlinsert}
+                  dbCon:commit()
+
+                  --local Success, Result = pcall(executeAndCommit, dbCon,sqlinsert)   
+
+                  -- if not Success then   
+                  --    iguana.log("Skipping error: " .. Result.message)   
+                  --    error("Fatal error occurred: ".. Result.message)   
+                  -- end   
+
+                  dbCon:commit()
+
+                  iguana.log('linking visit')
+
+                  local sqlupdate = [[update synapse.study set visit_uid = ]] .. tonumber(tQueryvisitid[1].NEXTVAL:S()) .. [[  where id = ']] .. studyuid .. [[']]
+                  trace (sqlupdate)
+                  local tQueryupdate = dbCon:execute{sql=sqlupdate}
+                  dbCon:commit()
+
+                  iguana.log("Synapse Visit created and updated: " .. tonumber(tQueryvisitid[1].NEXTVAL:S()) .. " studyuid: " .. studyuid .. " updated with attending physician: " .. docid  )
+
+
+               else
+
+
+
+
+                  iguana.log("about to update attending phy: " .. tonumber(tQueryvisit[1].ID:S()) .. " doc id:" .. docid)
+
+                  --local sqlupdate = [[update synapse.visit set attending_physician_uid = ]] .. tonumber(tQueryvisit[1].ID:S()) .. [[, primary_location_uid = ]] .. locationid.. [[ where id = ]] .. tQueryvisit[1].ID:S()
+                  local sqlupdate = [[update synapse.visit set referring_physician_uid = ]] .. refid .. [[ where id = ]] .. tQueryvisit[1].ID:S()
+                  local tQueryupdate = dbCon:execute{sql=sqlupdate}
+                  dbCon:commit()
+
+                  iguana.log("Synapse Visit updated: " .. tQueryvisit[1].ID:S().. " studyuid: " .. studyuid  .. " updated with referring: " .. refid)
+               end -- end visit query
+
+
+
+
+
+
+            end --end refid
+
+
+
+
+
+
+
+
+         end -- if prelim
 
 
 
@@ -539,7 +693,7 @@ function UpdateDatabase(Data)
 
       else
          iguana.logError("Database issue")
-      end
+      end -- end dbcon
 
       dbCon:close()
 
@@ -548,7 +702,7 @@ function UpdateDatabase(Data)
       iguana.logError("No Accession Number")
 
 
-   end
+   end -- end accession
 
 end
 
@@ -720,4 +874,46 @@ end -- end main
 function executeAndCommit(dbcon,query)
    dbcon:execute{sql=query}
    dbcon:commit()
+end
+
+function updateSonographer(sono, study_uid)
+
+
+   --update sonographer
+
+   if sono ~= '' then
+
+      local dbCon = PACSDBPROD.PACSConnection()
+      if dbCon then
+
+
+         --see if study has AR, if not create one
+
+         local sqlstudyar = [[select study_uid from synapse.study_ar_columns where study_uid = ']] .. study_uid .. [[']]
+         local tQuerystudyar = dbCon:query{sql=sqlstudyar}
+
+         trace(#tQuerystudyar)
+         iguana.log('studyar found: ' .. tQuerystudyar[1].study_uid:S())
+
+         if #tQuerystudyar > 0 then
+            local sqlupdate = [[update synapse.study_ar_columns set sonographer_last_name = ']] .. sono .. [[' where study_uid = ']] .. study_uid .. [[']]
+            trace(sqlupdate)
+            iguana.log(sqlupdate)
+            dbCon:execute{sql=sqlupdate}
+         else
+            local sqlinsert = [[insert into synapse.study_ar_columns (study_uid, sonographer_last_name) values ]] ..
+            [[(']] .. study_uid .. [[', ']] .. sono .. [[')]]
+
+            trace(sqlinsert)
+            iguana.log(sqlinsert)
+            dbCon:execute{sql=sqlinsert}
+
+         end
+         dbCon:close()
+      end -- end dbcon
+
+
+
+
+   end
 end
