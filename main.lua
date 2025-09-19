@@ -251,7 +251,7 @@ function UpdateDatabase(Data)
                local tQueryuserid = dbCon:query{sql=sqluserid}
 
                local createuserrefsql = [[INSERT INTO synapse.user_info (id, accessor_uid, site_uid, user_euid, last_name, first_name, is_active) VALUES ]] ..
-               [[( ]] .. tonumber(tQueryuserid[1].NEXTVAL:S()) .. [[, -1, -1, ']] .. string.gsub(ref,' ','') .. [[', ']] .. ref .. [[', ' ', 'Y')]]
+               [[( ]] .. tonumber(tQueryuserid[1].NEXTVAL:S()) .. [[, -1, -1, ']] .. ref .. [[', ']] .. ref .. [[', ' ', 'Y')]]
 
 
                iguana.log("Adding a user, ref: " .. ref .. " id: " .. tonumber(tQueryuserid[1].NEXTVAL:S()))
